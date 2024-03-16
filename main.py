@@ -7,7 +7,7 @@ import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from models import create_tables, Word, User, UserWord
 
-DNS = "postgresql://postgres:25022004HERSOSI1725@localhost:5432/tgbot"
+DNS = "postgresql://postgres:password@localhost:5432/tgbot"
 engine = sqlalchemy.create_engine(DNS)
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -64,7 +64,7 @@ def delite_words(engine, cid, word):
 print("Start telegram bot...")
 
 state_storage = StateMemoryStorage()
-token_bot = "7181966406:AAEGSJxKWu4x0poGoQjKi5D8BEB6csEaLmQ"
+token_bot = "bot token"
 bot = TeleBot(token_bot, state_storage=state_storage)
 
 known_users = users(engine)
