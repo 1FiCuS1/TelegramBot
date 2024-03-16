@@ -31,9 +31,8 @@ def add_user(engine, user_id):
 
 def get_words(engine, user_id):
     session = (sessionmaker(bind=engine))()
-    words = session.query(UserWord.word, UserWord.translate) \
-            .join(User, User.id == UserWord.user_id) \
-            .filter(User.name == user_id).all()
+    words = session.query(UserWord.word, UserWord.translate).join(User, User.id == UserWord.user_id).filter(User.name == user_id).all()
+    
 
     words_all = session.query(Word.word, Word.translate).all()
     result = words_all + words
@@ -52,8 +51,7 @@ def add_word(engine, name, word, translate):
 def delite_words(engine, name, word):
     session = (sessionmaker(bind=engine))()
     user_id = session.query(User.id).filter(User.name == name).first()[0]
-    session.query(UserWord).filter(
-    UserWord.user_id == user_id, UserWord.word == word).delete()
+    session.query(UserWord).filter(UserWord.user_id == user_id, UserWord.word == word).delete()
     session.commit()
     session.close()
 
