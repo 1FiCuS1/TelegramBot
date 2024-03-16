@@ -7,7 +7,7 @@ import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from models import create_tables, Word, User, UserWord
 
-DNS = "postgresql://postgres:password@localhost:5432/tgbot"
+DNS = "postgresql://postgres:25022004HERSOSI1725@localhost:5432/tgbot"
 engine = sqlalchemy.create_engine(DNS)
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -31,32 +31,29 @@ def add_user(engine, user_id):
 
 def get_words(engine, user_id):
     session = (sessionmaker(bind=engine))()
-    words = (
-        session.query(UserWord.word, UserWord.translate)
-        .join(User, User.id == UserWord.user_id)
-        .filter(User.user_id == user_id)
-        .all()
-    )
+    words = session.query(UserWord.word, UserWord.translate) \
+            .join(User, User.id == UserWord.user_id) \
+            .filter(User.name == user_id).all()
+
     words_all = session.query(Word.word, Word.translate).all()
     result = words_all + words
     session.close()
     return result
 
 
-def add_word(engine, cid, word, translate):
+def add_word(engine, name, word, translate):
     session = (sessionmaker(bind=engine))()
-    user_id = session.query(User).filter(User.cid == cid).first()[0]
+    user_id = session.query(User).filter(User.name == name).first()[0]
     session.add(UserWord(word=word, translate=translate, id_user=user_id))
     session.commit()
     session.close()
 
 
-def delite_words(engine, cid, word):
+def delite_words(engine, name, word):
     session = (sessionmaker(bind=engine))()
-    user_id = session.query(User.id).filter(User.cid == cid).first()[0]
+    user_id = session.query(User.id).filter(User.name == name).first()[0]
     session.query(UserWord).filter(
-        UserWord.id_user == user_id, UserWord.word == word
-    ).delete()
+    UserWord.user_id == user_id, UserWord.word == word).delete()
     session.commit()
     session.close()
 
@@ -64,7 +61,7 @@ def delite_words(engine, cid, word):
 print("Start telegram bot...")
 
 state_storage = StateMemoryStorage()
-token_bot = "bot token"
+token_bot = "7181966406:AAEGSJxKWu4x0poGoQjKi5D8BEB6csEaLmQ"
 bot = TeleBot(token_bot, state_storage=state_storage)
 
 known_users = users(engine)
@@ -123,7 +120,7 @@ def create_cards(message):
 
     global buttons
     buttons = []
-    get_word = random(get_words(engine, cid), 4)
+    get_word = random.sample(get_words(engine, cid), 4)
     word = get_word[0]
     target_word = word[0]  # брать из БД
     translate = word[1]  # брать из БД
