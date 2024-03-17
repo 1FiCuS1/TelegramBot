@@ -6,7 +6,7 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "user"
     id = sq.Column(sq.Integer, primary_key=True)
-    name = sq.Column(sq.String(length=50), nullable=False)
+    cid = sq.Column(sq.BigInteger, nullable=False)
 
     def __str__(self):
         return self.name

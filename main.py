@@ -7,54 +7,59 @@ import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from models import create_tables, Word, User, UserWord
 
-DNS = "postgresql://postgres:25022004HERSOSI1725@localhost:5432/tgbot"
-engine = sqlalchemy.create_engine(DNS)
-Session = sessionmaker(bind=engine)
-session = Session()
-create_tables(engine)
-
 
 def users(engine):
     session = (sessionmaker(bind=engine))()
     users = session.query(User).all()
-    users = [i.user_id for i in users]
+    users = [user.user_id for user in users]
     session.close()
     return users
 
 
 def add_user(engine, user_id):
     session = (sessionmaker(bind=engine))()
-    session.add(User(user_id=user_id))
+    session.add(User(cid=user_id))
     session.commit()
     session.close()
 
 
-def get_words(engine, user_id):
+def get_words(engine, id_user):
     session = (sessionmaker(bind=engine))()
-    words = session.query(UserWord.word, UserWord.translate).join(User, User.id == UserWord.user_id).filter(User.name == user_id).all()
-    
-
+    words = (
+        session.query(UserWord.word, UserWord.translate)
+        .join(User, User.id == UserWord.user_id)
+        .filter(User.cid == id_user)
+        .all()
+    )
     words_all = session.query(Word.word, Word.translate).all()
     result = words_all + words
     session.close()
     return result
 
 
-def add_word(engine, name, word, translate):
+def add_word(engine, cid, word, translate):
     session = (sessionmaker(bind=engine))()
-    user_id = session.query(User).filter(User.name == name).first()[0]
-    session.add(UserWord(word=word, translate=translate, id_user=user_id))
+    user_id = session.query(User.id).filter(User.cid == cid).first()[0]
+    session.add(UserWord(word=word, translate=translate, user_id=user_id))
     session.commit()
     session.close()
 
 
-def delite_words(engine, name, word):
+def delite_words(engine, cid, word):
     session = (sessionmaker(bind=engine))()
-    user_id = session.query(User.id).filter(User.name == name).first()[0]
-    session.query(UserWord).filter(UserWord.user_id == user_id, UserWord.word == word).delete()
+    user_id = session.query(User.id).filter(User.cid == cid).first()[0]
+    session.query(UserWord).filter(
+        UserWord.user_id == user_id, UserWord.word == word
+    ).delete()
     session.commit()
     session.close()
 
+
+DNS = "postgresql://postgres:25022004HERSOSI1725@localhost:5432/tgbot"
+engine = sqlalchemy.create_engine(DNS)
+Session = sessionmaker(bind=engine)
+session = Session()
+create_tables(engine)
 
 print("Start telegram bot...")
 
@@ -63,7 +68,7 @@ token_bot = "7181966406:AAEGSJxKWu4x0poGoQjKi5D8BEB6csEaLmQ"
 bot = TeleBot(token_bot, state_storage=state_storage)
 
 known_users = users(engine)
-print(f"Добавленные пользователи: {known_users}")
+print(f"Добавленные пользователи:{len(known_users)}")
 userStep = {}
 buttons = []
 
@@ -112,13 +117,19 @@ def create_cards(message):
     cid = message.chat.id
     if cid not in known_users:
         known_users.append(cid)
+        add_user(engine, cid)
         userStep[cid] = 0
         bot.send_message(cid, text_welcoming_theuser)
     markup = types.ReplyKeyboardMarkup(row_width=2)
 
     global buttons
     buttons = []
-    get_word = random.sample(get_words(engine, cid), 4)
+    words = get_words(engine, cid)
+    if len(words) >= 4:
+        get_word = random.sample(words, 4)
+    else:
+        # обработка случая, когда элементов меньше 4
+        print("Недостаточно элементов для выборки")
     word = get_word[0]
     target_word = word[0]  # брать из БД
     translate = word[1]  # брать из БД
@@ -137,8 +148,8 @@ def create_cards(message):
 
     greeting = f"Выбери перевод слова:\n🇷🇺 {translate}"
     bot.send_message(message.chat.id, greeting, reply_markup=markup)
-    bot.set_state(message.user.id, MyStates.target_word, message.chat.id)
-    with bot.retrieve_data(message.user.id, message.chat.id) as data:
+    bot.set_state(message.from_user.id, MyStates.target_word, message.chat.id)
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["target_word"] = target_word
         data["translate_word"] = translate
         data["other_words"] = others
@@ -151,7 +162,7 @@ def next_cards(message):
 
 @bot.message_handler(func=lambda message: message.text == Command.DELETE_WORD)
 def delete_word(message):
-    with bot.retrieve_data(message.user.id, message.chat.id) as data:
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         print("Удалить слово", message.chat.id, data["target_word"])  # удалить из БД
         delete_word(engine, message.chat.id, data["target_word"])
         bot.send_message(message.chat.id, "Слово удалено")
@@ -162,7 +173,7 @@ def add_word(message):
     cid = message.chat.id
     userStep[cid] = 1
     bot.send_message(cid, "Напишите слово на английском:")
-    bot.set_state(message.user.id, MyStates.translate_word, message.chat.id)
+    bot.set_state(message.from_user.id, MyStates.translate_word, message.chat.id)
     print(message.text)  # сохранить в БД
 
 
@@ -172,7 +183,7 @@ def message_reply(message):
     markup = types.ReplyKeyboardMarkup(row_width=2)
     cid = message.chat.id
     if userStep[cid] == 0:
-        with bot.retrieve_data(message.user.id, message.chat.id) as data:
+        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             target_word = data["target_word"]
             if text == target_word:
                 hint = show_target(data)
@@ -196,13 +207,13 @@ def message_reply(message):
         create_cards(message)
 
     elif userStep[cid] == 1:
-        with bot.retrieve_data(message.user.id, message.chat.id) as data:
+        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data["target_word"] = text
             bot.send_message(cid, "Напишите перевод слова на русском:")
-            bot.set_state(message.user.id, MyStates.other_words, message.chat.id)
+            bot.set_state(message.from_user.id, MyStates.other_words, message.chat.id)
             userStep[cid] = 2
     elif userStep[cid] == 2:
-        with bot.retrieve_data(message.user.id, message.chat.id) as data:
+        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data["translate_word"] = text
             add_word(engine, cid, data["target_word"], data["translate_word"])
             bot.send_message(cid, "Слово добавлено")
