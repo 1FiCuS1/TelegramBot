@@ -39,7 +39,7 @@ def create_db(engine):
 
     
 
-DNS = 'postgresql://postgres:25022004HERSOSI1725@localhost:5432/tgbot'
+DNS = 'postgresql://postgres:password@localhost:5432/tgbot'
 engine = sqlalchemy.create_engine(DNS)
 Session = sessionmaker(bind=engine)
 session = Session()
