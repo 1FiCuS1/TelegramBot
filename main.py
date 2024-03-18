@@ -55,7 +55,7 @@ def delite_words(engine, cid, word):
     session.close()
 
 
-DNS = "postgresql://postgres:password@localhost:5432/tgbot"
+DNS = "postgresql://postgres:25022004HERSOSI1725@localhost:5432/tgbot"
 engine = sqlalchemy.create_engine(DNS)
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -64,7 +64,7 @@ create_tables(engine)
 print("Start telegram bot...")
 
 state_storage = StateMemoryStorage()
-token_bot = "bot"
+token_bot = "7181966406:AAEGSJxKWu4x0poGoQjKi5D8BEB6csEaLmQ"
 bot = TeleBot(token_bot, state_storage=state_storage)
 
 known_users = users(engine)
@@ -124,12 +124,7 @@ def create_cards(message):
 
     global buttons
     buttons = []
-    words = get_words(engine, cid)
-    if len(words) >= 4:
-        get_word = random.sample(words, 4)
-    else:
-        # обработка случая, когда элементов меньше 4
-        print("Недостаточно элементов для выборки")
+    get_word = random.sample(get_words(engine, cid), 4)
     word = get_word[0]
     target_word = word[0]  # брать из БД
     translate = word[1]  # брать из БД

@@ -5,7 +5,7 @@ from models import create_tables, Word
 
 
 def create_db(engine):
-    word = (
+    words = (
         ('hello', 'привет'),
         ('goodbye', 'до свидания'),
         ('yes', 'да'),
@@ -30,7 +30,7 @@ def create_db(engine):
     )
     
     create_tables(engine)
-    for i in word:
+    for i in words:
         
         session.add(Word(word=i[0], translate=i[1]))
         
@@ -39,7 +39,7 @@ def create_db(engine):
 
     
 
-DNS = 'postgresql://postgres:password@localhost:5432/tgbot'
+DNS = 'postgresql://postgres:25022004HERSOSI1725@localhost:5432/tgbot'
 engine = sqlalchemy.create_engine(DNS)
 Session = sessionmaker(bind=engine)
 session = Session()
